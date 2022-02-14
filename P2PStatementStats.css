@@ -1,0 +1,39 @@
+/* @media (prefers-color-scheme: dark) {
+    :root {
+        --bs-dark: #292929;
+        --bs-light: #ffffff;
+    }
+
+    body,
+    .modal-content,
+    .card {
+        background-color: var(--bs-dark);
+        color: var(--bs-light);
+    }
+
+    .modal-header {
+        background-color: rgba(0,0,0,.125);
+        border-bottom-color: rgba(0,0,0,.125);
+        
+    }
+
+    .modal-footer {
+        border-top-color: rgba(0,0,0,.125);
+    }
+
+    .spinner-border {
+        color: var(--bs-dark);
+    }
+} */
+
+.accordion-button:not(.collapsed) {
+    color: inherit;
+    background-color: inherit;
+}
+
+.alert {
+    padding-right: 1rem !important;
+    padding-left: 1rem !important;
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+}

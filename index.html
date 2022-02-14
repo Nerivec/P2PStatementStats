@@ -1,0 +1,950 @@
+<!doctype html>
+<html lang="en" class="m-0 p-0">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>P2P Statement Stats</title>
+        <meta name="description" content="A quick & easy tool to get some statistics out of various P2P lending platform (fiat / crypto).">
+        <meta name="robots" content="index, nofollow">
+
+        <link href="./libs/bootstrap.min.css" rel="stylesheet">
+        <link href="./P2PStatementStats.css" rel="stylesheet">
+    </head>
+    <body class="m-0 p-0">
+        <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+            <symbol id="check-circle-fill" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+            </symbol>
+            <symbol id="info-fill" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+            </symbol>
+            <symbol id="exclamation-triangle-fill" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+            </symbol>
+            <symbol id="eye" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+            </symbol>
+        </svg>
+        <div class="container">
+            <header class="mb-4">
+                <object type="image/svg+xml" data="./logo.svg" title="P2P Statement Stats" class="img-fluid text-center" style="height: 9rem;"></object>
+                <div class="row">
+                    <div class="col">
+                        <p>This tool (fully local, the files you provide never leave your computer) allows you to get various statistics by simply giving it the account statements of the platforms you use. Once your files are loaded, simply click the Process button. You can also save your data for faster loading next time (only add the newer data from new statements).</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#notes-help">
+                            &#10026; Read Me
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between">
+                    Saves
+                    <div class="">
+                        Current version: <span class="badge bg-primary rounded-pill" id="settings-version"></span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col">
+                            <label for="load-save" class="form-label">
+                                Load previous save (compatible from version: <span class="badge bg-success rounded-pill" id="settings-breaking-version"></span>)
+                            </label>
+                            <input id="load-save" type="file" class="form-control" accept=".json">
+                        </div>
+                        <div class="col">
+                            <label for="save-button" class="form-label">
+                                Create new save
+                            </label>
+                            <button type="submit" class="form-control btn btn-primary" id="save-button">Save</button>
+                        </div>
+                    </div>
+                    <div class="row mb-3 fst-italic d-none">
+                        <div class="col">
+                            <p>Loaded saves info</p>
+                            <ol id="loaded-save-info" class="list-group list-group-numbered list-group-flush">
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between">
+                    Statements loading
+                    <div class="form-check form-switch position-relative">
+                        <input type="checkbox" class="form-check-input" id="enable-multiload">
+                        <label for="enable-multiload" class="form-check-label">
+                            Enable Multi-Load
+                        </label>
+
+                        <div class="position-absolute top-100 start-0 mt-1" style="z-index: 10;">
+                            <a
+                                type="button"
+                                class="badge rounded-pill bg-info text-decoration-none"
+                                data-bs-toggle="modal"
+                                data-bs-target="#multiload-help">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="1em"
+                                    height="1em"
+                                    fill="#0dcaf0"
+                                    class="bi bi-caret-up-fill position-absolute top-0 start-50 translate-middle"
+                                    viewBox="0 0 16 16">
+                                    <path d="m7.247 4.86-4.796 5.481c-.566.647-.106 1.659.753 1.659h9.592a1 1 0 0 0 .753-1.659l-4.796-5.48a1 1 0 0 0-1.506 0z" />
+                                </svg>
+                                What's this?
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body px-0 py-4">
+                    <div class="accordion accordion-flush" id="statements-loading">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="p2p">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                    &#9737; P2P
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="p2p">
+                                <div class="accordion-body">
+                                    <div class="row mb-3">
+                                        <div class="col-4 mb-2">
+                                            <label for="estateguru-statement" class="form-label">
+                                                Estate Guru statement
+                                                <span data-bs-toggle="tooltip" class="d-none">
+                                                    &#8505;
+                                                </span>
+                                                <span class="badge rounded-pill bg-primary d-none" id="estateguru-tx-counter" data-bs-toggle="tooltip" title="Currently loaded transactions">
+                                                </span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="file" id="estateguru-statement" class="form-control" accept=".xls">
+                                                <a
+                                                    class="btn btn-outline-info show-platform-info"
+                                                    data-bs-toggle="offcanvas"
+                                                    href="#offcanvas-info"
+                                                    role="button"
+                                                    aria-controls="platform-info"
+                                                    data-p2ps2-platform="ESTATEGURU">
+                                                    <svg class="bi" width="18" height="18" role="img">
+                                                        <use xlink:href="#eye"/>
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="col-4 mb-2">
+                                            <label for="iuvo-statement" class="form-label">
+                                                Iuvo statement
+                                                <span data-bs-toggle="tooltip" class="d-none">
+                                                    &#8505;
+                                                </span>
+                                                <span class="badge rounded-pill bg-primary d-none" id="iuvo-tx-counter" data-bs-toggle="tooltip" title="Currently loaded transactions">
+                                                </span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="file" id="iuvo-statement" class="form-control" accept=".xlsx">
+                                                <a
+                                                    class="btn btn-outline-info show-platform-info"
+                                                    data-bs-toggle="offcanvas"
+                                                    href="#offcanvas-info"
+                                                    role="button"
+                                                    aria-controls="platform-info"
+                                                    data-p2ps2-platform="IUVO">
+                                                    <svg class="bi" width="18" height="18" role="img">
+                                                        <use xlink:href="#eye"/>
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="col-4 mb-2">
+                                            <label for="kviku-statement" class="form-label">
+                                                Kviku statement
+                                                <span data-bs-toggle="tooltip" class="d-none">
+                                                    &#8505;
+                                                </span>
+                                                <span class="badge rounded-pill bg-primary d-none" id="kviku-tx-counter" data-bs-toggle="tooltip" title="Currently loaded transactions">
+                                                </span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="file" id="kviku-statement" class="form-control" accept=".xlsx">
+                                                <a
+                                                    class="btn btn-outline-info show-platform-info"
+                                                    data-bs-toggle="offcanvas"
+                                                    href="#offcanvas-info"
+                                                    role="button"
+                                                    aria-controls="platform-info"
+                                                    data-p2ps2-platform="KVIKU">
+                                                    <svg class="bi" width="18" height="18" role="img">
+                                                        <use xlink:href="#eye"/>
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="col-4 mb-2">
+                                            <label for="lendermarket-statement" class="form-label">
+                                                Lendermarket statement
+                                                <span data-bs-toggle="tooltip" class="d-none">
+                                                    &#8505;
+                                                </span>
+                                                <span class="badge rounded-pill bg-primary d-none" id="lendermarket-tx-counter" data-bs-toggle="tooltip" title="Currently loaded transactions">
+                                                </span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="file" id="lendermarket-statement" class="form-control" accept=".csv">
+                                                <a
+                                                    class="btn btn-outline-info show-platform-info"
+                                                    data-bs-toggle="offcanvas"
+                                                    href="#offcanvas-info"
+                                                    role="button"
+                                                    aria-controls="platform-info"
+                                                    data-p2ps2-platform="LENDERMARKET">
+                                                    <svg class="bi" width="18" height="18" role="img">
+                                                        <use xlink:href="#eye"/>
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="col-4 mb-2">
+                                            <label for="mintos-statement" class="form-label">
+                                                Mintos statement
+                                                <span data-bs-toggle="tooltip" class="d-none">
+                                                    &#8505;
+                                                </span>
+                                                <span class="badge rounded-pill bg-primary d-none" id="mintos-tx-counter" data-bs-toggle="tooltip" title="Currently loaded transactions">
+                                                </span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="file" id="mintos-statement" class="form-control" accept=".xlsx">
+                                                <a
+                                                    class="btn btn-outline-info show-platform-info"
+                                                    data-bs-toggle="offcanvas"
+                                                    href="#offcanvas-info"
+                                                    role="button"
+                                                    aria-controls="platform-info"
+                                                    data-p2ps2-platform="MINTOS">
+                                                    <svg class="bi" width="18" height="18" role="img">
+                                                        <use xlink:href="#eye"/>
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="col-4 mb-2">
+                                            <label for="moncera-statement" class="form-label">
+                                                Moncera statement
+                                                <span data-bs-toggle="tooltip" class="d-none">
+                                                    &#8505;
+                                                </span>
+                                                <span class="badge rounded-pill bg-primary d-none" id="moncera-tx-counter" data-bs-toggle="tooltip" title="Currently loaded transactions">
+                                                </span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="file" id="moncera-statement" class="form-control" accept=".xlsx">
+                                                <a
+                                                    class="btn btn-outline-info show-platform-info"
+                                                    data-bs-toggle="offcanvas"
+                                                    href="#offcanvas-info"
+                                                    role="button"
+                                                    aria-controls="platform-info"
+                                                    data-p2ps2-platform="MONCERA">
+                                                    <svg class="bi" width="18" height="18" role="img">
+                                                        <use xlink:href="#eye"/>
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="col-4 mb-2">
+                                            <label for="peerberry-statement" class="form-label">
+                                                Peerberry statement
+                                                <span data-bs-toggle="tooltip" class="d-none">
+                                                    &#8505;
+                                                </span>
+                                                <span class="badge rounded-pill bg-primary d-none" id="peerberry-tx-counter" data-bs-toggle="tooltip" title="Currently loaded transactions">
+                                                </span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="file" id="peerberry-statement" class="form-control" accept=".xlsx">
+                                                <a
+                                                    class="btn btn-outline-info show-platform-info"
+                                                    data-bs-toggle="offcanvas"
+                                                    href="#offcanvas-info"
+                                                    role="button"
+                                                    aria-controls="platform-info"
+                                                    data-p2ps2-platform="PEERBERRY">
+                                                    <svg class="bi" width="18" height="18" role="img">
+                                                        <use xlink:href="#eye"/>
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="col-4 mb-2">
+                                            <label for="robocash-statement" class="form-label">
+                                                Robocash statement
+                                                <span data-bs-toggle="tooltip" class="d-none">
+                                                    &#8505;
+                                                </span>
+                                                <span class="badge rounded-pill bg-primary d-none" id="robocash-tx-counter" data-bs-toggle="tooltip" title="Currently loaded transactions">
+                                                </span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="file" id="robocash-statement" class="form-control" accept=".xls">
+                                                <a
+                                                    class="btn btn-outline-info show-platform-info"
+                                                    data-bs-toggle="offcanvas"
+                                                    href="#offcanvas-info"
+                                                    role="button"
+                                                    aria-controls="platform-info"
+                                                    data-p2ps2-platform="ROBOCASH">
+                                                    <svg class="bi" width="18" height="18" role="img">
+                                                        <use xlink:href="#eye"/>
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="col-4 mb-2">
+                                            <label for="twino-statement" class="form-label">
+                                                Twino statement
+                                                <span data-bs-toggle="tooltip" class="d-none">
+                                                    &#8505;
+                                                </span>
+                                                <span class="badge rounded-pill bg-primary d-none" id="twino-tx-counter" data-bs-toggle="tooltip" title="Currently loaded transactions">
+                                                </span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="file" id="twino-statement" class="form-control" accept=".xlsx">
+                                                <a
+                                                    class="btn btn-outline-info show-platform-info"
+                                                    data-bs-toggle="offcanvas"
+                                                    href="#offcanvas-info"
+                                                    role="button"
+                                                    aria-controls="platform-info"
+                                                    data-p2ps2-platform="TWINO">
+                                                    <svg class="bi" width="18" height="18" role="img">
+                                                        <use xlink:href="#eye"/>
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="crypto">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                    &#9737; Crypto Earn
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="crypto">
+                                <div class="accordion-body">
+                                    <div class="alert alert-warning d-flex align-items-center" role="alert">
+                                        <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img">
+                                            <use xlink:href="#exclamation-triangle-fill"/>
+                                        </svg>
+                                        Support here is limited. Calculations are in USD equivalents as per the statements (value & date/time). Held underlying crypto-currencies are not considered (capital gain/loss). Because of this, the results ("interest earning") are somewhat more comparable to that of P2P. However, this also means it does not reflect the true values/returns for crypto platforms.
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-4 mb-2">
+                                            <label for="blockfi-statement" class="form-label">
+                                                BlockFi statement
+                                                <span data-bs-toggle="tooltip" class="d-none">
+                                                    &#8505;
+                                                </span>
+                                                <span class="badge rounded-pill bg-primary d-none" id="blockfi-tx-counter" data-bs-toggle="tooltip" title="Currently loaded transactions">
+                                                </span>
+                                            </label>
+                                            <div class="input-group" data-bs-toggle="tooltip" title="Not yet supported">
+                                                <input type="file" id="blockfi-statement" class="form-control" accept=".xlsx" disabled>
+                                                <a
+                                                    class="btn btn-outline-info show-platform-info disabled"
+                                                    data-bs-toggle="offcanvas"
+                                                    href="#offcanvas-info"
+                                                    role="button"
+                                                    aria-controls="platform-info"
+                                                    data-p2ps2-platform="BLOCKFI">
+                                                    <svg class="bi" width="18" height="18" role="img">
+                                                        <use xlink:href="#eye"/>
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="col-4 mb-2">
+                                            <label for="cryptocom-statement" class="form-label">
+                                                Crypto.com statement
+                                                <span data-bs-toggle="tooltip" class="d-none">
+                                                    &#8505;
+                                                </span>
+                                                <span class="badge rounded-pill bg-primary d-none" id="cryptocom-tx-counter" data-bs-toggle="tooltip" title="Currently loaded transactions">
+                                                </span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="file" id="cryptocom-statement" class="form-control" accept=".csv">
+                                                <a
+                                                    class="btn btn-outline-info show-platform-info"
+                                                    data-bs-toggle="offcanvas"
+                                                    href="#offcanvas-info"
+                                                    role="button"
+                                                    aria-controls="platform-info"
+                                                    data-p2ps2-platform="CRYPTOCOM">
+                                                    <svg class="bi" width="18" height="18" role="img">
+                                                        <use xlink:href="#eye"/>
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="col-4 mb-2">
+                                            <label for="nexo-statement" class="form-label">
+                                                Nexo statement
+                                                <span data-bs-toggle="tooltip" class="d-none">
+                                                    &#8505;
+                                                </span>
+                                                <span class="badge rounded-pill bg-primary d-none" id="nexo-tx-counter" data-bs-toggle="tooltip" title="Currently loaded transactions">
+                                                </span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="file" id="nexo-statement" class="form-control" accept=".csv">
+                                                <a
+                                                    class="btn btn-outline-info show-platform-info"
+                                                    data-bs-toggle="offcanvas"
+                                                    href="#offcanvas-info"
+                                                    role="button"
+                                                    aria-controls="platform-info"
+                                                    data-p2ps2-platform="NEXO">
+                                                    <svg class="bi" width="18" height="18" role="img">
+                                                        <use xlink:href="#eye"/>
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="col-4 mb-2">
+                                            <label for="youhodler-statement" class="form-label">
+                                                Youhodler statement
+                                                <span data-bs-toggle="tooltip" class="d-none">
+                                                    &#8505;
+                                                </span>
+                                                <span class="badge rounded-pill bg-primary d-none" id="youhodler-tx-counter" data-bs-toggle="tooltip" title="Currently loaded transactions">
+                                                </span>
+                                            </label>
+                                            <div class="input-group" data-bs-toggle="tooltip" title="Not yet supported">
+                                                <input type="file" id="youhodler-statement" class="form-control" accept=".xlsx" disabled>
+                                                <a
+                                                    class="btn btn-outline-info show-platform-info disabled"
+                                                    data-bs-toggle="offcanvas"
+                                                    href="#offcanvas-info"
+                                                    role="button"
+                                                    aria-controls="platform-info"
+                                                    data-p2ps2-platform="YOUHODLER">
+                                                    <svg class="bi" width="18" height="18" role="img">
+                                                        <use xlink:href="#eye"/>
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="crypto">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                    &#9737; Additional data
+                                </button>
+                            </h2>
+                            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="crypto">
+                                <div class="accordion-body">
+                                    <div class="alert alert-info d-flex align-items-center" role="alert">
+                                        <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img">
+                                            <use xlink:href="#exclamation-triangle-fill"/>
+                                        </svg>
+                                        "Current Investments" files are required for these platforms for full stats support; their account statements alone do not provide enough data. Without providing these files, stats like country exposure will be "UNKNOWN" for these platforms.
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-4 mb-2">
+                                            <label for="iuvo-investments" class="form-label">
+                                                Iuvo current investments
+                                                <span data-bs-toggle="tooltip" title="Remove the first and last three lines (not part of the main table) of the statement with Excel before loading it here (superfluous data making it incompatible with automatic detection).">
+                                                    &#8505;
+                                                </span>
+                                            </label>
+                                            <input type="file" id="iuvo-investments" class="form-control" accept=".xlsx">
+                                        </div>
+                                        <div class="col-4 mb-2">
+                                            <label for="mintos-investments" class="form-label">
+                                                Mintos current investments
+                                                <span data-bs-toggle="tooltip" title="The amounts in recovery for investments that are supposed to be finished will still show 'Unknown'.">
+                                                    &#8505;
+                                                </span>
+                                            </label>
+                                            <input type="file" id="mintos-investments" class="form-control" accept=".xlsx">
+                                        </div>
+                                        <div class="col-4 mb-2">
+                                            <label for="peerberry-investments" class="form-label">
+                                                Peerberry current investments
+                                                <span data-bs-toggle="tooltip" class="d-none">
+                                                    &#8505;
+                                                </span>
+                                            </label>
+                                            <input type="file" id="peerberry-investments" class="form-control" accept=".xlsx">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="row justify-content-center align-items-center">
+                        <div class="col">
+                            <div class="input-group" data-bs-toggle="tooltip" title="Convert values from platforms in USD to EUR using this rate (for better comparison). This is never exact since past values may have had different rates than today's; for this reason, converted values are always displayed next to their 'actual' USD values.">
+                                <span class="input-group-text"><a class="text-decoration-none" href="https://www.xe.com/currencyconverter/convert/?Amount=1&From=USD&To=EUR" target="_blank" rel="nofollow">1 USD =</a></span>
+                                <input id="fx-usd-eur" type="number" class="form-control" value="0.875">
+                            </div>
+                        </div>
+                        <!--<div class="col">
+                            <div class="input-group" data-bs-toggle="tooltip" title="Convert platforms current GBP values to EUR for better comparison.">
+                                <span class="input-group-text">1 GBP =</span>
+                                <input id="fx-gbp-eur" type="number" class="form-control" value="1.800">
+                            </div>
+                        </div>-->
+                        <div class="col">
+                            <div class="input-group" data-bs-toggle="tooltip" title="Ignore periodic bonuses (referral, one-time events, all except ongoing loyalty bonuses) when calculating returns (TWRR). Enabling this can provide a better overview of platform returns, especially those with short history spans or when you want to compare multiple platforms.">
+                                <div class="input-group-text">
+                                    <div class="form-check form-switch mb-0">
+                                        <input id="twrr-ignore-periodic-bonuses" type="checkbox" class="form-check-input">
+                                    </div>
+                                </div>
+                                <label for="twrr-ignore-periodic-bonuses" class="form-control form-check-label">
+                                    Ignore periodic bonuses (for TWRR)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <button type="submit" class="btn btn-primary form-control" id="process-button">Process</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section id="chart-container" class="my-5 d-none">
+                <div class="row">
+                    <canvas id="chart" width="400" height="400"></canvas>
+                </div>
+                <div class="row mt-3 mb-4 justify-content-center">
+                    <div class="col-auto">
+                        <select id="chart-show-monthly-returns-year" class="form-select form-select-sm d-none">
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div id="chart-actions" class="btn-group" role="group" aria-label="Chart actions">
+                        <input id="show-shares" type="radio" name="chart-action" class="btn-check" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="show-shares">Shares</label>
+
+                        <input id="show-results" type="radio" name="chart-action" class="btn-check" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="show-results">Results</label>
+        
+                        <input id="show-returns" type="radio" name="chart-action" class="btn-check" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="show-returns">Returns</label>
+        
+                        <input id="show-monthly-returns" type="radio" name="chart-action" class="btn-check" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="show-monthly-returns">Monthly Returns</label>
+        
+                        <input id="show-country-exposure" type="radio" name="chart-action" class="btn-check" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="show-country-exposure">Country Exposure</label>
+        
+                        <input id="show-global-country-exposure" type="radio" name="chart-action" class="btn-check" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="show-global-country-exposure">Global Country Exposure</label>
+                    </div>
+                </div>
+            </section>
+
+            <hr>
+    
+            <div class="row mb-3 justify-content-center align-items-center">
+                <div class="col-auto">
+                    <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#notes-help">
+                        &#10026; Notes
+                    </button>
+                </div>
+                <div class="col-auto">
+                    <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#platforms-help">
+                        &#10026; Platform Notes & Tips
+                    </button>
+                </div>
+                <div class="col-auto">
+                    <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#multiload-help">
+                        &#10026; Multi-Load Help
+                    </button>
+                </div>
+                <div class="col-auto">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#updates-help">
+                        &infin; Updates
+                    </button>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="row mb-3">
+                <h4>Sponsoring</h4>
+                <p>If you want to sponsor this project, you can use one of the following platforms:</p>
+                <div class="btn-group mb-1" role="group" aria-label="Sponsoring">
+                    <a href="https://www.buymeacoffee.com/Nerivec" class="btn btn-success">Buy Me A Coffee</a>
+                    <a href="https://patreon.com/Nerivec" class="btn btn-success">Patreon</a>
+                    <!--<a href="https://github.com/sponsors/Nerivec" class="btn btn-success">Github Sponsors</a>-->
+                </div>
+                <p>You can also use our referral links on the various P2P/Crypto platforms (see conditions on the websites of the specific platforms):</p>
+                <div class="btn-group mb-1" role="group" aria-label="Sponsoring">
+                    <a href="https://kviku.finance/en/sign-up-bonus?utm_source=u6185" target="_blank" rel="nofollow" class="btn btn-success" data-bs-toggle="tooltip" title="20EUR bonus to earn interests on">
+                        kviku.finance
+                    </a>
+                    <a href="https://www.lendermarket.com/ref/6dqyzje5?lang=en" target="_blank" rel="nofollow" class="btn btn-success" data-bs-toggle="tooltip" title="1% welcome bonus">
+                        lendermarket.com
+                    </a>
+                    <a href="https://robo.cash/ref/aga5" target="_blank" rel="nofollow" class="btn btn-success" data-bs-toggle="tooltip" title="1% welcome bonus">
+                        robo.cash
+                    </a>
+                    <a href="https://www.twino.eu/en/join-today?refer_friend=160460" target="_blank" rel="nofollow" class="btn btn-success" data-bs-toggle="tooltip" title="15EUR welcome bonus">
+                        twino.eu
+                    </a>
+                    <a href="https://moncera.com/join/oiqzoi" target="_blank" rel="nofollow" class="btn btn-success" data-bs-toggle="tooltip" title="0.5% welcome bonus">
+                        moncera.com
+                    </a>
+                    <a href="https://estateguru.co/investor-referral/?userPromotionCode=EGU46893" target="_blank" rel="nofollow" class="btn btn-success" data-bs-toggle="tooltip" title="0.5% welcome bonus">
+                        estateguru.co
+                    </a>
+                    <a href="https://nexo.io/ref/9ke4d1nex1" target="_blank" rel="nofollow" class="btn btn-success" data-bs-toggle="tooltip" title="25USD welcome bonus in BTC">
+                        nexo.io
+                    </a>
+                    <div class="btn btn-success user-select-auto" data-bs-toggle="tooltip" title="25USD welcome bonus in CRO">
+                        Crypto.com code: 7q63f34euj
+                    </div>
+                </div>
+            </div>
+
+            <hr>
+
+            <footer>
+                <div class="alert alert-success d-flex align-items-center" role="alert">
+                    <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img">
+                        <use xlink:href="#check-circle-fill"/>
+                    </svg>
+                    <div>
+                        This is still a work in progress. Changes from platforms may prevent processing them until the logic is updated accordingly. Feel free to report any issue you encountered, feedback, or suggestions, <a href="https://github.com/Nerivec/P2PStatementStats/issues" target="_blank">here</a>. Reports (columns, field types, etc...) on other platform's statements for future integrations are appreciated too.
+                    </div>
+                </div>
+                <div class="alert alert-warning d-flex align-items-center" role="alert">
+                    <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img">
+                        <use xlink:href="#exclamation-triangle-fill"/>
+                    </svg>
+                    <div>
+                        This tool is "Open Source", given free of charge, and for informative purposes only. There is no guarantee the information presented to you is exact. The authors and maintainers are in no way responsible nor liable for any error this tool may include, or how a user may strategize based on it. No financial service or investment advice is offered. See <a href="https://raw.githubusercontent.com/Nerivec/P2PStatementStats/main/LICENSE" target="_blank" rel="nofollow">LICENSE</a>.
+                    </div>
+                </div>
+            </footer>
+        </div>
+
+        <div id="offcanvas-info" class="offcanvas offcanvas-start" tabindex="-1">
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title"></h5>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
+            </div>
+        </div>
+
+        <div class="modal fade" id="notes-help" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Notes</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>
+                            Everything is processed locally on your computer; nothing leaves your computer. If you wish to do so, you can download the <a href="https://github.com/Nerivec/P2PStatementStats/releases/latest" target="_blank">latest release</a> and run it offline on your computer. You can unplug your Internet connection when you run it, if you want to make sure ;-).
+                        </p>
+                        <p>
+                            If an update from one of the platforms breaks the saves from a previous version of this tool, you will get notified when you try to load them. If that happens, you will have to create a new save by loading all the statements again first.
+                        </p>
+                        <p>
+                            If you encounter other save-related issues, make sure you use the same browser; different algorithms in different browsers may impact the process. Tests were done on Firefox (latest) without issues.
+                        </p>
+                        <p>
+                            Running this tool on mobile browsers is not recommended, nor supported.
+                        </p>
+                        <p>
+                            The length of the entire span available for a particular platform will affect the accuracy of the end results (longer is better, below 2 months is hardly comparable).
+                        </p>
+                        <p>
+                            If you end up with a negative value for a platform in Shares (that you know is wrong), make sure you loaded the entire history for that platform (it can't know the previous value of your account otherwise).
+                        </p>
+                        <p>
+                            More about Time-Weight Rate of Return algorithm <a href="https://en.wikipedia.org/wiki/Time-weighted_return#Time-weighted_return_compensating_for_external_flows" target="_blank" rel="nofollow">on Wikipedia</a>. This tool currently uses the "valued after flow" version.
+                        </p>
+                        <p>
+                            Due to limited data available in some platform's statements, not all platforms support country exposure. Platforms that don't support it, will be classified as "Unknown". See "Platform Notes & Tips".
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="platforms-help" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Platform Notes & Tips</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="multiload-help" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Enable Multi-Load</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>
+                            Load multiple statements for a single plateform (one after another).
+                        </p>
+                        <p>
+                            Some platforms limit the number of rows available in one statement file (like IUVO, 10000).
+                            Enabling Multi-Load allows to load the entire history by loading multiple statements that cover the entire span.
+                        </p>
+                        <p>
+                            In the same manner, this also allows adding new transactions to a previously-loaded save.
+                            For example, you could download last month's statements from each of your platforms, and add it to your save (which would have the rest of your history).
+                            It avoids long wait time (and possibly timeouts) associated with generating full-history statements on platforms where you have a long history.
+                            Don't forget to grab your new save once you are done!
+                        </p>
+                        <p>
+                            If you have a previous save, load it before anything else.
+                            Also, to be safe, you should always load statements from oldest to newest.
+                            The algorithm does its best to correct the order of transactions, but some statements are very poor data-wise, which makes sorting a bit harder.
+                        </p>
+                        <p>
+                            Duplicate rows are removed automatically (each row is uniquely identified on load). If you want to load a new statement that might contain transactions already present in your session/save (overlapping dates), you can; it should not create any issue.
+                        </p>
+                        <p>
+                            Only enable this feature whenever actually needed.
+                            Loading statements is faster when disabled; especially the larger the statements get.
+                        </p>
+                        <p>
+                            If this feature is disabled, when loading a new statement, the corresponding platform's data is reset.
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="updates-help" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Updates</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="accordion" id="updates-logs">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse001">
+                                        Version: 0.01
+                                    </button>
+                                </h2>
+                                <div id="collapse001" class="accordion-collapse collapse" data-bs-parent="#updates-logs">
+                                    <div class="accordion-body">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item">Alpha version.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse002">
+                                        Version: 0.02
+                                    </button>
+                                </h2>
+                                <div id="collapse002" class="accordion-collapse collapse" data-bs-parent="#updates-logs">
+                                    <div class="accordion-body">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item">Added base support for ESTATEGURU.</li>
+                                            <li class="list-group-item">Added base support for ROBOCASH.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse003">
+                                        Version: 0.03
+                                    </button>
+                                </h2>
+                                <div id="collapse003" class="accordion-collapse collapse" data-bs-parent="#updates-logs">
+                                    <div class="accordion-body">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item">Added support for country exposure chart.</li>
+                                            <li class="list-group-item disabled">Fixed ESTATEGURU detection for canceled then returned investments.</li>
+                                            <li class="list-group-item disabled">Fixed MINTOS detection for sell.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse004">
+                                        Version: 0.04
+                                    </button>
+                                </h2>
+                                <div id="collapse004" class="accordion-collapse collapse" data-bs-parent="#updates-logs">
+                                    <div class="accordion-body">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item disabled">Fixed some FX issues.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse005">
+                                        Version: 0.05
+                                    </button>
+                                </h2>
+                                <div id="collapse005" class="accordion-collapse collapse" data-bs-parent="#updates-logs">
+                                    <div class="accordion-body">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item disabled">Fixed some sorting issues.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse006">
+                                        Version: 0.06
+                                    </button>
+                                </h2>
+                                <div id="collapse006" class="accordion-collapse collapse" data-bs-parent="#updates-logs">
+                                    <div class="accordion-body">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item">Added platform details view.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse007">
+                                        Version: 0.07
+                                    </button>
+                                </h2>
+                                <div id="collapse007" class="accordion-collapse collapse" data-bs-parent="#updates-logs">
+                                    <div class="accordion-body">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item">Added "Current Investments" file support to detect country exposures for platforms that don't offer the information in their account statements.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse008">
+                                        Version: 0.08
+                                    </button>
+                                </h2>
+                                <div id="collapse008" class="accordion-collapse collapse" data-bs-parent="#updates-logs">
+                                    <div class="accordion-body">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item disabled">Fixed typos.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse009">
+                                        Version: 0.09
+                                    </button>
+                                </h2>
+                                <div id="collapse009" class="accordion-collapse collapse" data-bs-parent="#updates-logs">
+                                    <div class="accordion-body">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item disabled">Confirmed some row types for IUVO, TWINO.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse010">
+                                        Version: 0.10
+                                    </button>
+                                </h2>
+                                <div id="collapse010" class="accordion-collapse collapse" data-bs-parent="#updates-logs">
+                                    <div class="accordion-body">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item">Initial public release [beta].</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div
+            id="blocking-progress"
+            class="modal-backdrop show d-flex justify-content-center align-items-center d-none">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-container" style="z-index: 11;">
+        </div>
+
+        <template id="toast">
+            <div class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        </template>
+
+        <script src="./libs/bootstrap.bundle.min.js"></script>
+        <script src="./libs/xlsx.full.min.js"></script>
+        <script src="./libs/md5.min.js"></script>
+        <script src="./libs/chart.min.js"></script>
+        <script src="./P2PStatementStats.js"></script>
+    </body>
+</html>
