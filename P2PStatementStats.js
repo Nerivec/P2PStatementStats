@@ -1,3 +1,4 @@
+const CENT_NUMBER = 0.01;
 // const SMALL_NUMBER = 0.0001;// 1e-4
 const VERY_SMALL_NUMBER = 0.000001;// 1e-6
 // const TINY_NUMBER = 0.00000001;// 1e-8
@@ -400,7 +401,7 @@ const P2PS2 = {
         types: {
             bonus: "bonus",// positive
             deposit: "deposit",// positive
-            withdrawal: "withdrawal",// negative | TODO: CONFIRM
+            withdrawal: "withdraw_request",// negative
             lateFee: "late_fee",// positive
             paymentInterest: "payment_interest",// positive
             paymentInterestBuyback: "payment_interest_buyback",// positive
@@ -1190,7 +1191,7 @@ const P2PS2 = {
 
     settings: {
         // used mostly for breaking change detection with save mechanism
-        version: 0.11,
+        version: 0.12,
         // if save version is < to this, then save is no longer compatible
         // P2PS2fn.sanitizeOldSave may be used instead, whenever possible, to avoid full-break
         breakingVersion: 0.10,
@@ -1200,10 +1201,8 @@ const P2PS2 = {
         multiload: false,
         // if true, TWRR calc ignores periodic bonuses (referral, one-time events, all except ongoing loyalty bonuses)
         twrrIgnorePeriodicBonuses: false,
-        // 1 USD === this XXX: update before new release
-        fxUSDEUR: 0.885,
-        // 1 GBP === this XXX: update before new release
-        // fxGBPEUR: 1.800,
+        // 1 USD === this
+        fxUSDEUR: 0.895,
         blockingProgressTag: document.querySelector("#blocking-progress"),
         toastContainerTag: document.querySelector("#toast-container"),
         toastTemplateTag: document.querySelector("#toast"),
@@ -1236,6 +1235,7 @@ const P2PS2 = {
         tag: document.querySelector("#chart"),
         containerTag: document.querySelector("#chart-container"),
         showMonthlyReturnsYearSelectTag: document.querySelector("#chart-show-monthly-returns-year"),
+        showGlobalMonthlyReturnsYearSelectTag: document.querySelector("#chart-show-global-monthly-returns-year"),
         instance: undefined,
         data: {
             // platforms with no relevant data are taken out
@@ -1248,6 +1248,7 @@ const P2PS2 = {
             annTWRRVAFRatePerPlatform: {},
             monthlyAnnTWRRVAFRatePerPlatform: {},
             ciPerCountryPerPlatform: {},
+            globalMonthlyAnnTWRRVAFRate: {},
         },
     },
 
@@ -1642,6 +1643,7 @@ const P2PS2fn = {
                 annTWRRVAFRatePerPlatform: {},
                 monthlyAnnTWRRVAFRatePerPlatform: {},
                 ciPerCountryPerPlatform: {},
+                globalMonthlyAnnTWRRVAFRate: {},
             };
         },
 
@@ -1823,7 +1825,17 @@ const P2PS2fn = {
 
             P2PS2fn.dom.showToast(
                 "warning",
-                `CRYPTOCOM data from this save file (v0.10) cannot be loaded because of breaking changes in v0.11. Please re-add CRYPTOCOM statements manually, and make a new save.`,
+                `CRYPTOCOM data from this save file (v0.10) cannot be loaded because of breaking changes in v0.11. Please re-add CRYPTOCOM statements manually, and make a new save to replace your old one.`,
+                10000
+            );
+        }
+        // v0.10+ to v0.12 breaks IUVO
+        else if (jsonData.version === 0.11) {
+            delete jsonData.platforms.IUVO;
+
+            P2PS2fn.dom.showToast(
+                "warning",
+                `IUVO data from this save file (v0.11) cannot be loaded because of breaking changes in v0.12. Please re-add IUVO statements manually, and make a new save to replace your old one.`,
                 10000
             );
         }
@@ -1850,11 +1862,22 @@ const P2PS2fn = {
             };
         }
 
+        P2PS2fn.checkRemoveCurrentInvestment(platformKey, loanId);
+    },
+
+    checkRemoveCurrentInvestment(platformKey, loanId) {
         const val = P2PS2.platforms[platformKey].currentInvestments[loanId].value;
 
         // extremely close to zero (assumes loan repaid in full)
-        if (val < VERY_SMALL_NUMBER && val > -VERY_SMALL_NUMBER) {
+        // XXX: mintos has bad rounding?
+        if (((val < VERY_SMALL_NUMBER) && (val > -VERY_SMALL_NUMBER)) || (platformKey === "MINTOS" && (val < CENT_NUMBER) && (val > -CENT_NUMBER))) {
             delete P2PS2.platforms[platformKey].currentInvestments[loanId];
+        }
+    },
+
+    removeStaleCurrentInvestments(platformKey) {
+        for (const loanId of Object.keys(P2PS2.platforms[platformKey].currentInvestments)) {
+            P2PS2fn.checkRemoveCurrentInvestment(platformKey, loanId);
         }
     },
 
@@ -2508,7 +2531,13 @@ document.querySelector("#process-button").addEventListener("click", async () => 
 
     const allTransactions = P2PS2._platformKeys.reduce((acc, key) => {
         if (P2PS2.platforms[key].transactions.length > 0) {
-            return acc.concat(P2PS2.platforms[key].transactions);
+            // XXX: fx problem (fx rate at time of transaction, likely isn't same as now)
+            //      only as accurate as a static fx rate can be...
+            const platformFXMod = (P2PS2.platforms[key].currency === CURRENCY_USD) ? P2PS2.settings.fxUSDEUR : 1.0;
+
+            for (const tx of P2PS2.platforms[key].transactions) {
+                acc.push({ ...tx, value: (tx[P2PS2.columns.value] * platformFXMod) });
+            }
         }
 
         return acc;
@@ -2517,8 +2546,7 @@ document.querySelector("#process-button").addEventListener("click", async () => 
     if (allTransactions.length >= 2) {
         allTransactions.sort((a, b) => a[P2PS2.columns.date] - b[P2PS2.columns.date]);
 
-        // XXX: fx problem (fx rate at time of transaction, likely isn't same as now)
-        // P2PS2.GLOBAL.returns = P2PS2fn.calcReturns(allTransactions);
+        P2PS2.GLOBAL.returns = P2PS2fn.calcReturns(allTransactions);
         P2PS2.GLOBAL.startDate = allTransactions[0][P2PS2.columns.date];
         const [lastTx] = allTransactions.slice(-1);
         P2PS2.GLOBAL.endDate = lastTx[P2PS2.columns.date];
@@ -2526,6 +2554,13 @@ document.querySelector("#process-button").addEventListener("click", async () => 
         // create all keys for all years
         for (let i = P2PS2.GLOBAL.startDate.getFullYear(); i <= P2PS2.GLOBAL.endDate.getFullYear(); i++) {
             P2PS2.chart.data.monthlyAnnTWRRVAFRatePerPlatform[i] = {};
+            // NOTE: undefined = if not active platform, don't show data, better than zero
+            P2PS2.chart.data.globalMonthlyAnnTWRRVAFRate[i] = MONTHS_NUM.map(() => undefined);
+        }
+
+        for (const month of P2PS2.GLOBAL.returns.monthly) {
+            // format: { 2020: { IUVO: [m0, m1, m2 ... m11] } }
+            P2PS2.chart.data.globalMonthlyAnnTWRRVAFRate[month.year][month.month] = P2PS2fn.math.roundRate(month.annTWRRVAFRate);
         }
 
         for (const key of P2PS2._platformKeys) {
@@ -2621,12 +2656,25 @@ P2PS2.chart.showMonthlyReturnsYearSelectTag.addEventListener("change", async (ev
     P2PS2fn.chart.setDatasets(newDatasets);
 });
 
+P2PS2.chart.showGlobalMonthlyReturnsYearSelectTag.addEventListener("change", async (event) => {
+    const year = event.target.value;
+    const newDatasets = [{
+        label: "Global",
+        data: P2PS2.chart.data.globalMonthlyAnnTWRRVAFRate[year],
+        backgroundColor: P2PS2.settings.colors.bonuses,
+        borderColor: P2PS2.settings.colors.bonuses,
+    }];
+
+    P2PS2fn.chart.setDatasets(newDatasets);
+});
+
 document.querySelector("#show-shares").addEventListener("change", async () => {
     if (P2PS2.chart.instance) {
         P2PS2.chart.instance.destroy();
     }
 
     P2PS2.chart.showMonthlyReturnsYearSelectTag.classList.add("d-none");
+    P2PS2.chart.showGlobalMonthlyReturnsYearSelectTag.classList.add("d-none");
 
     // doughnut chart with shares for all platforms
     // NOTE: balance is a "current" value, no FX problem
@@ -2684,6 +2732,7 @@ document.querySelector("#show-results").addEventListener("change", async () => {
     }
 
     P2PS2.chart.showMonthlyReturnsYearSelectTag.classList.add("d-none");
+    P2PS2.chart.showGlobalMonthlyReturnsYearSelectTag.classList.add("d-none");
 
     // stacked bar chart with fees+interests+bonuses since start for all platforms
     // XXX: fees+interests+bonuses are accumulated values, FX is a problem
@@ -2758,6 +2807,7 @@ document.querySelector("#show-returns").addEventListener("change", async () => {
     }
 
     P2PS2.chart.showMonthlyReturnsYearSelectTag.classList.add("d-none");
+    P2PS2.chart.showGlobalMonthlyReturnsYearSelectTag.classList.add("d-none");
 
     // bar chart with annual returns since start for all platforms
     P2PS2.chart.instance = new Chart(P2PS2.chart.tag, {
@@ -2800,6 +2850,8 @@ document.querySelector("#show-monthly-returns").addEventListener("change", async
     if (P2PS2.chart.instance) {
         P2PS2.chart.instance.destroy();
     }
+
+    P2PS2.chart.showGlobalMonthlyReturnsYearSelectTag.classList.add("d-none");
 
     const minYear = P2PS2.GLOBAL.startDate.getFullYear();
     const maxYear = P2PS2.GLOBAL.endDate.getFullYear();
@@ -2856,12 +2908,79 @@ document.querySelector("#show-monthly-returns").addEventListener("change", async
     });
 });
 
+document.querySelector("#show-global-monthly-returns").addEventListener("change", async () => {
+    if (P2PS2.chart.instance) {
+        P2PS2.chart.instance.destroy();
+    }
+
+    P2PS2.chart.showMonthlyReturnsYearSelectTag.classList.add("d-none");
+
+    const minYear = P2PS2.GLOBAL.startDate.getFullYear();
+    const maxYear = P2PS2.GLOBAL.endDate.getFullYear();
+    const selectedYear = minYear;
+
+    // in case re-processing, make sure we start clean
+    while (P2PS2.chart.showGlobalMonthlyReturnsYearSelectTag.firstChild) {
+        P2PS2.chart.showGlobalMonthlyReturnsYearSelectTag.firstChild.remove();
+    }
+
+    for (let i = minYear; i <= maxYear; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.innerHTML = i;
+        opt.checked = (i === selectedYear);
+
+        P2PS2.chart.showGlobalMonthlyReturnsYearSelectTag.appendChild(opt);
+    }
+
+    P2PS2.chart.showGlobalMonthlyReturnsYearSelectTag.classList.remove("d-none");
+
+    // line chart with monthly returns since start for all platforms, with select to switch year
+    P2PS2.chart.instance = new Chart(P2PS2.chart.tag, {
+        type: "line",
+        data: {
+            labels: MONTHS_ABBR,
+            datasets: [{
+                label: "Global",
+                data: P2PS2.chart.data.globalMonthlyAnnTWRRVAFRate[selectedYear],
+                backgroundColor: P2PS2.settings.colors.bonuses,
+                borderColor: P2PS2.settings.colors.bonuses,
+            }],
+        },
+        options: {
+            plugins: {
+                title: {
+                    display: true,
+                    text: "Global Monthly Annualized TWRR",
+                },
+                subtitle: {
+                    display: true,
+                    text: "WARNING: Precision can be greatly affected by the static FX rate being used for platforms in USD",
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (tooltipItem) => {
+                            return `${tooltipItem.dataset.label}: ${tooltipItem.formattedValue}%`;
+                        },
+                    }
+                },
+            },
+            interaction: {
+                mode: "index",
+                intersect: false,
+            },
+            stacked: false,
+        },
+    });
+});
+
 document.querySelector("#show-country-exposure").addEventListener("change", async () => {
     if (P2PS2.chart.instance) {
         P2PS2.chart.instance.destroy();
     }
 
     P2PS2.chart.showMonthlyReturnsYearSelectTag.classList.add("d-none");
+    P2PS2.chart.showGlobalMonthlyReturnsYearSelectTag.classList.add("d-none");
 
     const platformKeys = Object.keys(P2PS2.chart.data.ciPerCountryPerPlatform);
     // legend
@@ -2966,6 +3085,7 @@ document.querySelector("#show-global-country-exposure").addEventListener("change
     }
 
     P2PS2.chart.showMonthlyReturnsYearSelectTag.classList.add("d-none");
+    P2PS2.chart.showGlobalMonthlyReturnsYearSelectTag.classList.add("d-none");
 
     const dataset = {};
 
@@ -3386,7 +3506,16 @@ document.querySelector("#iuvo-investments").addEventListener("change", async (ev
                 );
             }
         }
+        else {
+            P2PS2fn.dom.showToast(
+                "warning",
+                `IUVO: Loan ${loanId} not in account statement.`,
+                1000
+            );
+        }
     }
+
+    P2PS2fn.removeStaleCurrentInvestments("IUVO");
 
     P2PS2.settings.blockingProgressTag.classList.add("d-none");
 
@@ -3844,7 +3973,16 @@ document.querySelector("#mintos-investments").addEventListener("change", async (
                 );
             }
         }
+        else {
+            P2PS2fn.dom.showToast(
+                "warning",
+                `MINTOS: Loan ${loanId} not in account statement.`,
+                1000
+            );
+        }
     }
+
+    P2PS2fn.removeStaleCurrentInvestments("MINTOS");
 
     // XXX: anything that isn't in current investments should be "recovery",
     //      although amount doesn't exactly match what is displayed on the website?
@@ -4155,7 +4293,16 @@ document.querySelector("#peerberry-investments").addEventListener("change", asyn
                 );
             }
         }
+        else {
+            P2PS2fn.dom.showToast(
+                "warning",
+                `PEERBERRY: Loan ${loanId} not in account statement.`,
+                1000
+            );
+        }
     }
+
+    P2PS2fn.removeStaleCurrentInvestments("PEERBERRY");
 
     P2PS2.settings.blockingProgressTag.classList.add("d-none");
 

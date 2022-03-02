@@ -539,6 +539,8 @@
                     <div class="col-auto">
                         <select id="chart-show-monthly-returns-year" class="form-select form-select-sm d-none">
                         </select>
+                        <select id="chart-show-global-monthly-returns-year" class="form-select form-select-sm d-none">
+                        </select>
                     </div>
                 </div>
                 <div class="row">
@@ -554,6 +556,9 @@
         
                         <input id="show-monthly-returns" type="radio" name="chart-action" class="btn-check" autocomplete="off">
                         <label class="btn btn-outline-primary" for="show-monthly-returns">Monthly Returns</label>
+        
+                        <input id="show-global-monthly-returns" type="radio" name="chart-action" class="btn-check" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="show-global-monthly-returns">Global Monthly Returns</label>
         
                         <input id="show-country-exposure" type="radio" name="chart-action" class="btn-check" autocomplete="off">
                         <label class="btn btn-outline-primary" for="show-country-exposure">Country Exposure</label>
@@ -920,8 +925,24 @@
                                 <div id="collapse011" class="accordion-collapse collapse" data-bs-parent="#updates-logs">
                                     <div class="accordion-body">
                                         <ul class="list-group list-group-flush">
-                                            <li class="list-group-item">Added support for CRYPTOCOM native currency.</li>
-                                            <li class="list-group-item disabled">Fixed CRYPTOCOM detection for more transaction types.</li>
+                                            <li class="list-group-item">Added support for CRYPTOCOM native currency. [Breaks save compat CRYPTOCOM]</li>
+                                            <li class="list-group-item disabled">Fixed CRYPTOCOM detection for more transaction types. [Breaks save compat CRYPTOCOM]</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse012">
+                                        Version: 0.12
+                                    </button>
+                                </h2>
+                                <div id="collapse012" class="accordion-collapse collapse" data-bs-parent="#updates-logs">
+                                    <div class="accordion-body">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item">Added Global Monthly Returns chart.</li>
+                                            <li class="list-group-item disabled">Fixed current investments removal (IUVO, MINTOS, PEERBERRY).</li>
+                                            <li class="list-group-item disabled">Fixed IUVO detection for more transaction types. [Breaks save compat IUVO]</li>
                                         </ul>
                                     </div>
                                 </div>
