@@ -401,7 +401,7 @@ const P2PS2 = {
         types: {
             bonus: "bonus",// positive
             deposit: "deposit",// positive
-            withdrawal: "withdraw_request",// negative
+            withdrawal: "withdraw",// negative
             lateFee: "late_fee",// positive
             paymentInterest: "payment_interest",// positive
             paymentInterestBuyback: "payment_interest_buyback",// positive
