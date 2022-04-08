@@ -1,6 +1,6 @@
 {
   "name": "p2pstatementstats",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A quick & easy tool to get some statistics out of various P2P lending platform (fiat / crypto).",
   "main": "index.html",
   "scripts": {

@@ -931,11 +931,25 @@ const P2PS2 = {
     },
     _NEXO: {
         // column names
+        // old
+        // columns: {
+        //     tx: "Transaction",
+        //     type: "Type",
+        //     currency: "Currency",
+        //     amount: "Amount",// NOTE: starts with purchased currency (last pair of columnCurrency) when typeExchange
+        //     usdEquiv: "USD Equivalent",// use this for calc
+        //     details: "Details",
+        //     outstandingLoan: "Outstanding Loan",
+        //     dateTime: "Date / Time",
+        // },
+        // Transaction,Type,Input Currency,Input Amount,Output Currency,Output Amount,USD Equivalent,Details,Outstanding Loan,Date / Time
         columns: {
             tx: "Transaction",
             type: "Type",
-            currency: "Currency",
-            amount: "Amount",// NOTE: starts with purchased currency (last pair of columnCurrency) when typeExchange
+            currency: "Input Currency",
+            amount: "Input Amount",// NOTE: starts with purchased currency (last pair of columnCurrency) when typeExchange
+            outputCurrency: "Output Currency",
+            outputAmount: "Output Amount",
             usdEquiv: "USD Equivalent",// use this for calc
             details: "Details",
             outstandingLoan: "Outstanding Loan",
@@ -1191,7 +1205,7 @@ const P2PS2 = {
 
     settings: {
         // used mostly for breaking change detection with save mechanism
-        version: 0.12,
+        version: 0.13,
         // if save version is < to this, then save is no longer compatible
         // P2PS2fn.sanitizeOldSave may be used instead, whenever possible, to avoid full-break
         breakingVersion: 0.10,
