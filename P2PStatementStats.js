@@ -908,22 +908,24 @@ const P2PS2 = {
             nativeAmount: "Native Amount",
             nativeAmountUSD: "Native Amount (in USD)",
             txKind: "Transaction Kind",
+            txHash: "Transaction Hash",
         },
         // possible values for type (pos/neg given for columns.nativeAmountUSD)
         types: {
             vibanDeposit: "viban_deposit",// positive
-            vibanWithdrawal: "viban_withdrawal",// negative | TODO: CONFIRM
+            vibanWithdrawal: "viban_withdrawal",// positive | NOTE: converted on load, TODO: CONFIRM
             vibanPurchase: "viban_purchase",// positive | NOTE: removed on load, purchase of columns.toCurrency with columns.currency
-            lockupLock: "lockup_lock",// negative | NOTE: converted on load, equivalent to P2P "investment" (at zero interest), staking
-            cryptoExchange: "crypto_exchange",// negative | NOTE: removed on load, purchase of columns.toCurrency with columns.currency
+            lockupLock: "lockup_lock",// positive | NOTE: converted on load, staking, equivalent to P2P "investment"
+            cryptoExchange: "crypto_exchange",// positive | NOTE: removed on load, purchase of columns.toCurrency with columns.currency
+            cryptoWithdrawal: "crypto_withdrawal",// positive | NOTE: converted on load, equivalent to fiat withdrawal
             cryptoVibanExchange: "crypto_viban_exchange",// positive | NOTE: removed on load, in crypto csv, selling crypto (columns.currency) for fiat (columns.toCurrency)
             cryptoViban: "crypto_viban",// positive | NOTE: same as above but in fiat csv
-            cryptoEarnCreated: "crypto_earn_program_created",// negative | earn term creation, equivalent to p2p "investment"
+            cryptoEarnCreated: "crypto_earn_program_created",// positive | NOTE: converted on load, earn term creation, equivalent to p2p "investment" WARNING: this is the same for flexible & fixed, which means avail. balance isn't properly reflected
             cryptoEarnInterest: "crypto_earn_interest_paid",// positive | earn term interest received
-            cryptoEarnWithdrawn: "crypto_earn_program_withdrawn",// positive | withdrawal from "flexible" term, equivalent to p2p "principal"
+            cryptoEarnWithdrawn: "crypto_earn_program_withdrawn",// positive | withdrawal from "flexible" term or end of term, equivalent to p2p "principal"
             referral: "referral_gift",// positive
             rewardsDeposit: "rewards_platform_deposit_credited",// positive | mission rewards
-            cardTopUp: "card_top_up",// negative | equivalent to fiat withdrawal
+            cardTopUp: "card_top_up",// positive | NOTE: converted on load, equivalent to fiat withdrawal
             cardCashback: "referral_card_cashback",// positive
         },
         warning: `Work in progress. We're still missing feedback to ensure full support.`,
@@ -1205,7 +1207,7 @@ const P2PS2 = {
 
     settings: {
         // used mostly for breaking change detection with save mechanism
-        version: 0.13,
+        version: 0.14,
         // if save version is < to this, then save is no longer compatible
         // P2PS2fn.sanitizeOldSave may be used instead, whenever possible, to avoid full-break
         breakingVersion: 0.10,
@@ -1216,7 +1218,7 @@ const P2PS2 = {
         // if true, TWRR calc ignores periodic bonuses (referral, one-time events, all except ongoing loyalty bonuses)
         twrrIgnorePeriodicBonuses: false,
         // 1 USD === this
-        fxUSDEUR: 0.895,
+        fxUSDEUR: 0.90,
         blockingProgressTag: document.querySelector("#blocking-progress"),
         toastContainerTag: document.querySelector("#toast-container"),
         toastTemplateTag: document.querySelector("#toast"),
@@ -1833,23 +1835,23 @@ const P2PS2fn = {
     },
 
     sanitizeOldSave(jsonData) {
-        // v0.10 to v0.11 breaks CRYPTOCOM
-        if (jsonData.version === 0.10) {
-            delete jsonData.platforms.CRYPTOCOM;
-
-            P2PS2fn.dom.showToast(
-                "warning",
-                `CRYPTOCOM data from this save file (v0.10) cannot be loaded because of breaking changes in v0.11. Please re-add CRYPTOCOM statements manually, and make a new save to replace your old one.`,
-                10000
-            );
-        }
         // v0.10+ to v0.12 breaks IUVO
-        else if (jsonData.version === 0.11) {
+        if (jsonData.version <= 0.11 && jsonData.platforms.IUVO._txIDs.length > 0) {
             delete jsonData.platforms.IUVO;
 
             P2PS2fn.dom.showToast(
                 "warning",
-                `IUVO data from this save file (v0.11) cannot be loaded because of breaking changes in v0.12. Please re-add IUVO statements manually, and make a new save to replace your old one.`,
+                `IUVO data from this save file cannot be loaded because of breaking changes in v0.12. Please re-add IUVO statements manually, and make a new save to replace your old one.`,
+                10000
+            );
+        }
+        // v0.10+ to v0.14 breaks CRYPTOCOM
+        if (jsonData.version <= 0.13 && jsonData.platforms.CRYPTOCOM._txIDs.length > 0) {
+            delete jsonData.platforms.CRYPTOCOM;
+        
+            P2PS2fn.dom.showToast(
+                "warning",
+                `CRYPTOCOM data from this save file cannot be loaded because of breaking changes in v0.14. Please re-add CRYPTOCOM statements manually, and make a new save to replace your old one.`,
                 10000
             );
         }
@@ -4644,12 +4646,13 @@ document.querySelector("#cryptocom-statement").addEventListener("change", async 
                     // TODO crypto deposit?
                     // TODO CONFIRM
                     case P2PS2._CRYPTOCOM.types.vibanWithdrawal:
+                    case P2PS2._CRYPTOCOM.types.cryptoWithdrawal:
                     case P2PS2._CRYPTOCOM.types.cardTopUp:
                         transaction[P2PS2.columns.type] = P2PS2.types.withdrawal;
+                        transaction[P2PS2.columns.value] *= -1.0;
                         P2PS2.platforms.CRYPTOCOM.balanceDepWid += transaction[P2PS2.columns.value];
                         P2PS2.platforms.CRYPTOCOM.balance += transaction[P2PS2.columns.value];
                         break;
-                    // TODO crypto withdrawal?
                     case P2PS2._CRYPTOCOM.types.referral:
                         // referral bonus is always in USD, even if native currency is EUR,
                         // this should be the only case, so accumulation of "errors" from converting at today's FX should remain minimal
@@ -4667,6 +4670,7 @@ document.querySelector("#cryptocom-statement").addEventListener("change", async 
                         // considered as investment only for the purpose of "not being available"
                         // CRO stake doesn't actually earn anything (used for benefits unlocking / card application)
                         transaction[P2PS2.columns.type] = P2PS2.types.investment;
+                        transaction[P2PS2.columns.value] *= -1.0;
 
                         P2PS2fn.updateCurrentInvestment(
                             "CRYPTOCOM",
@@ -4678,6 +4682,7 @@ document.querySelector("#cryptocom-statement").addEventListener("change", async 
                     case P2PS2._CRYPTOCOM.types.cryptoEarnCreated:
                         transaction[P2PS2.columns.country] = "[CRYPTO] CRYPTOCOM";
                         transaction[P2PS2.columns.type] = P2PS2.types.investment;
+                        transaction[P2PS2.columns.value] *= -1.0;
 
                         P2PS2fn.updateCurrentInvestment(
                             "CRYPTOCOM",
